@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.api import resume
+from app.api.analysis import router as analysis_router
 
 app = FastAPI(
     title="ResumeIQ API",
@@ -23,3 +24,4 @@ def health_check():
     }
 
 app.include_router(resume.router)
+app.include_router(analysis_router)

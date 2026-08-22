@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-import fitz
+import pymupdf
 
 router = APIRouter(
     prefix="/api/resumes",
@@ -22,7 +22,7 @@ async def upload_resume(file: UploadFile = File(...)):
         contents = await file.read()
 
         # Open PDF from memory
-        pdf_document = fitz.open(
+        pdf_document = pymupdf.open(
             stream=contents,
             filetype="pdf"
         )
