@@ -26,3 +26,7 @@ class AnalysisResponse(BaseModel):
     
     sections: dict[str, str]
     missing_sections: list[str]
+
+    section_analysis: dict
+
+    resume_quality_score: int
