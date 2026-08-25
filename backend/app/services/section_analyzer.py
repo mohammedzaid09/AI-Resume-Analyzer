@@ -230,3 +230,26 @@ def calculate_resume_quality(section_analysis: dict) -> int:
             for section, weight in weights.items()
         )
     )
+
+def generate_improvement_suggestions(
+    missing_skills: list,
+    missing_sections: list,
+    section_analysis: dict
+) -> list:
+
+    suggestions = []
+
+    if missing_skills:
+        suggestions.append(
+            f"Add relevant missing skills: {', '.join(missing_skills)}."
+        )
+
+    if missing_sections:
+        suggestions.append(
+            f"Consider adding missing sections: {', '.join(missing_sections)}."
+        )
+
+    for analysis in section_analysis.values():
+        suggestions.extend(analysis.get("feedback", []))
+
+    return suggestions
