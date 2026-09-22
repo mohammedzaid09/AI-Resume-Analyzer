@@ -24,3 +24,15 @@ class RewriteSectionResponse(BaseModel):
     section_name: str
     original_content: str
     improved_content: str
+
+class ImproveResumeRequest(BaseModel):
+    resume_text: str
+    job_description: str
+
+
+class ImproveResumeResponse(BaseModel):
+    success: bool
+    sections_improved: list[dict]
+    missing_sections: list[str]
+    missing_skills: list[str]
+    suggestions: list[str]

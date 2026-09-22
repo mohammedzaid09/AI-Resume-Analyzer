@@ -162,10 +162,8 @@ def _build_rewrite_prompt(
     content: str
 ) -> str:
     """
-    Build a simple prompt for improving resume wording.
-
-    The model should make small, natural improvements instead
-    of completely rewriting the section.
+    Build a prompt for substantially improving resume wording
+    while preserving all original information.
     """
 
     return f"""
@@ -173,48 +171,81 @@ def _build_rewrite_prompt(
 
 You are a professional resume editor.
 
-Improve the wording of the resume content below.
+Rewrite the resume content below to make it significantly
+more professional, clear, concise, and polished.
 
-Make SMALL improvements only.
-
-Your task is to make the existing sentences:
-- grammatically correct
-- clearer
-- more professional
-- easier to read
-
-You may add a few words or replace weak wording when needed.
+Make a MAJOR improvement to the wording and sentence structure.
+Do not simply make minor grammar corrections.
 
 IMPORTANT:
+Change the wording and structure, NOT the information.
 
-Change the wording, NOT the information.
-
-Keep:
-- all existing skills
-- all existing technologies
-- all existing project features
-- all existing responsibilities
-- all existing facts
-- all existing numbers and dates
+You MUST preserve:
+- every skill
+- every technology
+- every project feature
+- every responsibility
+- every fact
+- every number
+- every date
 - the original meaning
 
-Do not:
+You MUST NOT:
 - add new skills
 - remove skills
-- replace skills
+- replace skills with different skills
 - add technologies
-- remove project features
-- invent information
-- add achievements
-- add responsibilities
-- add numbers or metrics
-- add a title or heading
+- remove technologies
+- invent achievements
+- invent responsibilities
+- invent metrics
+- invent numbers
+- invent dates
+- invent users, scale, performance, impact, or results
+- add information that is not present
+- change project titles
+- change section titles
+- change labels such as "Tech Stack"
+- add a section heading
+- add an introduction
+- add a conclusion
 - explain your changes
+- summarize what you changed
+- mention these instructions
 
-If the sentence is already good, make only a small
-improvement or leave it nearly unchanged.
+Improve:
+- grammar
+- sentence structure
+- word choice
+- clarity
+- readability
+- professional resume language
 
-Return ONLY the improved content.
+You may completely restructure sentences when needed,
+but every statement must remain supported by the original content.
+
+The goal is to make the existing content sound substantially
+better while keeping exactly the same factual information.
+
+OUTPUT RULES:
+
+Return ONLY the rewritten resume content.
+
+Do NOT include:
+- explanations
+- comments
+- summaries
+- notes
+- analysis
+- statements about preserving information
+- statements about improving the content
+- statements about what you changed
+
+Do not write anything before the rewritten content.
+Do not write anything after the rewritten content.
+
+The response must end immediately after the final
+rewritten sentence or bullet point.
 
 SECTION:
 {section_name}
@@ -341,11 +372,10 @@ def _validate_rewrite(
     rewritten: str
 ) -> bool:
     """
-    Perform only basic safety checks.
+    Validate rewritten resume content.
 
-    This intentionally does NOT perform strict semantic
-    validation because the goal is to allow natural wording
-    improvements.
+    Rejects empty output, AI commentary, unwanted headings,
+    and changes to important factual information.
     """
 
     if not original.strip():
@@ -357,7 +387,7 @@ def _validate_rewrite(
     rewritten_lower = rewritten.lower()
 
     # --------------------------------------------------------
-    # Reject obvious AI explanations
+    # Reject obvious AI explanations / commentary
     # --------------------------------------------------------
 
     forbidden_phrases = [
@@ -368,10 +398,37 @@ def _validate_rewrite(
         "here is the rewritten",
         "here's the rewritten",
         "improved version:",
+        "no changes made",
+        "each skill and fact",
+        "this restructure",
+        "this rewrite",
+        "this version",
+        "this revised version",
+        "maintains all original",
+        "while enhancing clarity",
+        "end.",
     ]
 
     for phrase in forbidden_phrases:
         if phrase in rewritten_lower:
+            return False
+
+    # --------------------------------------------------------
+    # Reject model-generated section headings
+    # --------------------------------------------------------
+
+    unwanted_headings = [
+        "professional_summary",
+        "professional summary",
+        "technical skills:",
+        "experience:",
+        "projects:",
+        "education:",
+        "certifications:",
+    ]
+
+    for heading in unwanted_headings:
+        if heading in rewritten_lower:
             return False
 
     # --------------------------------------------------------
@@ -393,6 +450,18 @@ def _validate_rewrite(
     for term in original_terms:
         if term not in rewritten_lower:
             return False
+
+    # --------------------------------------------------------
+    # Prevent common skill hallucinations
+    # --------------------------------------------------------
+
+    # If the original contains C but not C++, the model must
+    # not introduce C++ as a new skill.
+    if (
+        "c++" not in original.lower()
+        and "c++" in rewritten_lower
+    ):
+        return False
 
     return True
 
@@ -435,12 +504,12 @@ def rewrite_resume_section(
                 "role": "system",
                 "content": (
                     "You are a professional resume editor. "
-                    "Make small improvements to the provided "
-                    "resume content. Correct grammar and improve "
-                    "wording while preserving the original "
-                    "information and skills. "
-                    "Return only the improved content."
-                )
+                    "Substantially improve the wording and sentence "
+                    "structure of the provided resume content. Correct "
+                    "grammar and make the writing more professional "
+                    "while preserving the original information and skills. "
+                    "Do not invent information or add new skills. "
+                    "Return only the rewritten resume content."                )
             },
             {
                 "role": "user",

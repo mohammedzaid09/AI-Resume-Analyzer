@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from app.schemas.analysis import AnalysisRequest, AnalysisResponse, RewriteSectionRequest, RewriteSectionResponse
+from app.schemas.analysis import AnalysisRequest, AnalysisResponse, RewriteSectionRequest, RewriteSectionResponse,  ImproveResumeRequest, ImproveResumeResponse
+    
 
 from app.services.resume_analyzer import analyze_resume
 from app.services.section_detector import detect_sections
@@ -244,4 +245,105 @@ async def rewrite_section(request: RewriteSectionRequest):
         "section_name": request.section_name,
         "original_content": request.content,
         "improved_content": improved_content
+    }
+
+
+@router.post(
+    "/improve-resume",
+    response_model=ImproveResumeResponse
+)
+async def improve_resume(request: ImproveResumeRequest):
+
+    # Analyze the resume against the job description
+    result = analyze_resume(
+        resume_text=request.resume_text,
+        job_description=request.job_description
+    )
+
+    # Detect resume sections
+    section_result = detect_sections(request.resume_text)
+
+    sections = section_result["sections"]
+
+    # Analyze individual sections
+    section_analysis = {
+        "professional_summary":
+            analyze_professional_summary(
+                sections.get("professional_summary", "")
+            ),
+
+        "projects":
+            analyze_projects(
+                sections.get("projects", "")
+            ),
+
+        "experience":
+            analyze_experience(
+                sections.get("experience", "")
+            ),
+
+        "technical_skills":
+            analyze_technical_skills(
+                sections.get("technical_skills", "")
+            ),
+
+        "education":
+            analyze_education(
+                sections.get("education", "")
+            ),
+
+        "certifications":
+            analyze_certifications(
+                sections.get("certifications", "")
+            )
+    }
+
+    # Identify important sections to improve
+    priority_sections = [
+        "professional_summary",
+        "experience",
+        "projects",
+    ]
+
+    sections_to_improve = [
+        section_name
+        for section_name in priority_sections
+        if section_analysis.get(section_name, {}).get("status") == "present"
+    ]
+
+    # Rewrite the selected sections
+    sections_improved = []
+
+    for section_name in sections_to_improve:
+
+        original_content = sections.get(
+            section_name,
+            ""
+        )
+
+        if not original_content:
+            continue
+
+        improved_content = rewrite_resume_section(
+            section_name=section_name,
+            content=original_content
+        )
+
+        sections_improved.append({
+            "section_name": section_name,
+            "original_content": original_content,
+            "improved_content": improved_content
+        })
+
+    # Return improvement result
+    return {
+        "success": True,
+        "sections_improved": sections_improved,
+        "missing_sections": section_result["missing_sections"],
+        "missing_skills": result["missing_skills"],
+        "suggestions": generate_improvement_suggestions(
+            result["missing_skills"],
+            section_result["missing_sections"],
+            section_analysis
+        )
     }
