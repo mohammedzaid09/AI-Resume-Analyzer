@@ -77,8 +77,13 @@ function ResumeAnalyzer() {
 
     if (!selectedFile) return;
 
-    if (selectedFile.type !== "application/pdf") {
-      setError("Please upload a PDF resume.");
+    const fileName = selectedFile.name.toLowerCase();
+
+    if (
+      !fileName.endsWith(".pdf") &&
+      !fileName.endsWith(".docx")
+    ) {
+      setError("Please upload a PDF or DOCX resume.");
       setFile(null);
       return;
     }
@@ -233,7 +238,7 @@ function ResumeAnalyzer() {
 
           <input
             type="file"
-            accept=".pdf"
+            accept=".pdf,.docx"
             onChange={handleFileChange}
           />
 
