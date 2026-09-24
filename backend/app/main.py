@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from app.api import resume
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.analysis import router as analysis_router
 
@@ -35,5 +34,4 @@ def health_check():
         "message": "ResumeIQ API is running"
     }
 
-app.include_router(resume.router)
 app.include_router(analysis_router)
